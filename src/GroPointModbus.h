@@ -42,9 +42,12 @@ inline uint8_t gpm_moistureCount(gropointModel m) {
 
 inline uint8_t gpm_tempCount(gropointModel m) {
     switch (m) {
-        case GPLP3: return 6;   // 3 segments → 6 temps
-        case GPLP8: return 13;  // 8 segments → 13 temps
-        // Add others if/when needed; keep old behavior by default:
+        case GPLP2: return 4;
+        case GPLP3: return 6;
+        case GPLP4: return 7;
+        case GPLP5: return 9;
+        case GPLP6: return 11;
+        case GPLP8: return 13;
         default:    return 13;
     }
 }

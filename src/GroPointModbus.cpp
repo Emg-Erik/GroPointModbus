@@ -385,39 +385,27 @@ bool gropoint::getInputRegisters(int16_t startRegister, int16_t numRegisters) {
 //   moisture measurements, or 12.3 °C for the soil temperature sensor measurements.
 // Starting at input register 30001, decimal offset 0 (hexadecimal 0x0000)
 bool gropoint::getValues(float& valueM1, float& valueM2, float& valueM3, float& valueM4,
-                         float& valueM5, float& valueM6, float& valueM7,
-                         float& valueM8) {
-    // Set values to -9999 before asking for the result
+                         float& valueM5, float& valueM6, float& valueM7, float& valueM8) {
+    // Initialize all outputs
     valueM1 = valueM2 = valueM3 = valueM4 = -9999;
     valueM5 = valueM6 = valueM7 = valueM8 = -9999;
 
-    int16_t startRegister = 0x0000;
+    const int16_t startRegister = 0x0000;
+    const uint8_t nMoist = gpm_moistureCount(static_cast<gropointModel>(_model));
 
-    switch (_model) {
-        case GPLP8: {
-            int16_t numRegisters = 8;
-            if (getInputRegisters(startRegister, numRegisters)) {
-                // Multiply by 0.1 to convert from int to float as per manual
-                valueM1 = 0.1 * modbus.int16FromFrame(bigEndian, 3);
-                valueM2 = 0.1 * modbus.int16FromFrame(bigEndian, 5);
-                valueM3 = 0.1 * modbus.int16FromFrame(bigEndian, 7);
-                valueM4 = 0.1 * modbus.int16FromFrame(bigEndian, 9);
-                valueM5 = 0.1 * modbus.int16FromFrame(bigEndian, 11);
-                valueM6 = 0.1 * modbus.int16FromFrame(bigEndian, 13);
-                valueM7 = 0.1 * modbus.int16FromFrame(bigEndian, 15);
-                valueM8 = 0.1 * modbus.int16FromFrame(bigEndian, 17);
-                return true;
-            }
-            break;
-        }
-        default: {
-            Serial.println(F("Other sensors not yet implemented."));
-            break;
-        }
+    if (!getInputRegisters(startRegister, nMoist)) return false;
+
+    float* outs[8] = {&valueM1, &valueM2, &valueM3, &valueM4,
+                      &valueM5, &valueM6, &valueM7, &valueM8};
+
+    // First register is at byte index 3; then every +2 bytes
+    for (uint8_t i = 0; i < nMoist && i < 8; i++) {
+        int16_t raw = modbus.int16FromFrame(bigEndian, 3 + 2 * i);
+        *outs[i] = 0.1f * raw;  // per manual: 0.1 % VWC
     }
-    // If something fails, we'll get here
-    return false;
+    return true;
 }
+
 
 // This gets soil temperature values back from the sensor
 // Page 37-38 of GroPoint Profile User Manual says:
@@ -434,41 +422,26 @@ bool gropoint::getTemperatureValues(float& valueT1, float& valueT2, float& value
                                     float& valueT7, float& valueT8, float& valueT9,
                                     float& valueT10, float& valueT11, float& valueT12,
                                     float& valueT13) {
-    // Set values to -9999 before asking for the result
+    // Initialize all outputs
     valueT1 = valueT2 = valueT3 = valueT4 = valueT5 = valueT6 = valueT7 = -9999;
     valueT8 = valueT9 = valueT10 = valueT11 = valueT12 = valueT13 = -9999;
 
-    int16_t startRegister = 0x0064;
+    const int16_t startRegister = 0x0064;
+    const uint8_t nTemp = gpm_tempCount(static_cast<gropointModel>(_model));
 
-    switch (_model) {
-        case GPLP8: {
-            int16_t numRegisters = 13;
-            if (getInputRegisters(startRegister, numRegisters)) {
-                // Multiply by 0.1 to convert from int to float as per manual
-                valueT1  = 0.1 * modbus.int16FromFrame(bigEndian, 3);
-                valueT2  = 0.1 * modbus.int16FromFrame(bigEndian, 5);
-                valueT3  = 0.1 * modbus.int16FromFrame(bigEndian, 7);
-                valueT4  = 0.1 * modbus.int16FromFrame(bigEndian, 9);
-                valueT5  = 0.1 * modbus.int16FromFrame(bigEndian, 11);
-                valueT6  = 0.1 * modbus.int16FromFrame(bigEndian, 13);
-                valueT7  = 0.1 * modbus.int16FromFrame(bigEndian, 15);
-                valueT8  = 0.1 * modbus.int16FromFrame(bigEndian, 17);
-                valueT9  = 0.1 * modbus.int16FromFrame(bigEndian, 19);
-                valueT10 = 0.1 * modbus.int16FromFrame(bigEndian, 21);
-                valueT11 = 0.1 * modbus.int16FromFrame(bigEndian, 23);
-                valueT12 = 0.1 * modbus.int16FromFrame(bigEndian, 25);
-                valueT13 = 0.1 * modbus.int16FromFrame(bigEndian, 27);
-                return true;
-            }
-            break;
-        }
-        default: {
-            Serial.println(F("Other sensors not yet implemented."));
-            break;
-        }
+    if (!getInputRegisters(startRegister, nTemp)) return false;
+
+    float* outs[13] = {&valueT1, &valueT2, &valueT3, &valueT4, &valueT5, &valueT6,
+                       &valueT7, &valueT8, &valueT9, &valueT10, &valueT11,
+                       &valueT12, &valueT13};
+
+    // First register is at byte index 3; then every +2 bytes
+    for (uint8_t i = 0; i < nTemp && i < 13; i++) {
+        int16_t raw = modbus.int16FromFrame(bigEndian, 3 + 2 * i);
+        *outs[i] = 0.1f * raw;  // per manual: 0.1 °C
     }
-    // If something fails, we'll get here
-    return false;
+    return true;
 }
+
 
 // cspell: ignore fram RIOTTECHGPLPTC

@@ -32,6 +32,23 @@ typedef enum gropointModel {
                 ///< serial number of an unknown model.
 } gropointModel;
 
+// Per-model channel counts (keeps GPLP8 behavior; adds correct GPLP3 counts)
+inline uint8_t gpm_moistureCount(gropointModel m) {
+    // For GPLP2..GPLP8 the enum equals the segment count
+    if (m >= GPLP2 && m <= GPLP8) return static_cast<uint8_t>(m);
+    // Fallback for unknowns
+    return 8;
+}
+
+inline uint8_t gpm_tempCount(gropointModel m) {
+    switch (m) {
+        case GPLP3: return 6;   // 3 segments → 6 temps
+        case GPLP8: return 13;  // 8 segments → 13 temps
+        // Add others if/when needed; keep old behavior by default:
+        default:    return 13;
+    }
+}
+
 /**
  * @brief The Main Class
  *
